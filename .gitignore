@@ -1,0 +1,21 @@
+.DS_Store
+
+# Xcode user-local state
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# Build products and archives
+DerivedData/
+build/
+*.xcarchive
+*.ipa
+*.dSYM
+
+# Local scratch captures
+tmp/
+
+# Swift Package Manager local state
+.build/
+Packages/
+
