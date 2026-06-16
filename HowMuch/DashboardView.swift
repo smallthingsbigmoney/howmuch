@@ -361,7 +361,12 @@ struct DashboardView: View {
         let punchline: String
     }
 
-    private static let purchaseAnalogies: [PurchaseAnalogy] = [
+    private struct PurchaseAnalogyTier {
+        let minimum: Double
+        let messages: [String]
+    }
+
+    private static let smallPurchaseAnalogies: [PurchaseAnalogy] = [
         PurchaseAnalogy(price: 1_500, name: "삼각김밥", unit: "개", punchline: "편의점 한 칸은 접수했어요"),
         PurchaseAnalogy(price: 2_000, name: "컵라면", unit: "개", punchline: "야근 냄새가 살짝 나요"),
         PurchaseAnalogy(price: 4_500, name: "아메리카노", unit: "잔", punchline: "카페인 통장 충전 중"),
@@ -372,12 +377,39 @@ struct DashboardView: View {
         PurchaseAnalogy(price: 23_000, name: "치킨", unit: "마리", punchline: "퇴근길 명분은 충분해요"),
         PurchaseAnalogy(price: 30_000, name: "피자", unit: "판", punchline: "반반 선택권이 생겼어요"),
         PurchaseAnalogy(price: 80_000, name: "운동화", unit: "켤레", punchline: "출근길 발걸음이 조금 가벼워져요"),
-        PurchaseAnalogy(price: 150_000, name: "헤드폰", unit: "개", punchline: "세상 소음 차단 예산 확보"),
-        PurchaseAnalogy(price: 180_000, name: "호캉스", unit: "박", punchline: "침대가 부르는 가격이에요"),
-        PurchaseAnalogy(price: 300_000, name: "자동차 타이어", unit: "짝", punchline: "한 짝씩 굴러가는 중"),
-        PurchaseAnalogy(price: 500_000, name: "로봇청소기", unit: "대", punchline: "바닥 일은 외주 줄 수 있어요"),
-        PurchaseAnalogy(price: 1_200_000, name: "스마트폰", unit: "대", punchline: "손 안의 기변 욕심이 깨어나요"),
-        PurchaseAnalogy(price: 1_500_000, name: "프리미엄 노트북", unit: "대", punchline: "장바구니가 진지해졌어요"),
+    ]
+
+    private static let purchaseAnalogyTiers: [PurchaseAnalogyTier] = [
+        PurchaseAnalogyTier(minimum: 10_000_000, messages: [
+            "중고차 검색창이 열리는 금액이에요.\n손가락은 아직 침착한 척",
+            "가전 매장 한 바퀴가 진지해지는 돈이에요.\n냉장고도 눈치를 봅니다",
+            "큰 여행 계획이 슬쩍 현실로 내려왔어요.\n달력 앱이 바빠질 차례",
+            "견적서가 말을 걸기 시작하는 금액이에요.\n통장은 오늘 꽤 당당해요",
+        ]),
+        PurchaseAnalogyTier(minimum: 3_000_000, messages: [
+            "노트북에 모니터까지 고민되는 돈이에요.\n책상이 갑자기 좁아 보여요",
+            "이사 비용이라는 단어가 현실감을 얻었어요.\n박스부터 사면 안 됩니다",
+            "주말 여행이 아니라 꽤 큰 여행이 보여요.\n연차 달력이 반짝입니다",
+            "가전 하나는 당당히 데려올 수 있어요.\n장바구니가 자세를 고쳐 앉았어요",
+        ]),
+        PurchaseAnalogyTier(minimum: 1_000_000, messages: [
+            "프리미엄 노트북이 장바구니에서 손을 흔들어요.\n아직은 눈싸움 중",
+            "최신 스마트폰이 꽤 현실적인 금액이에요.\n케이스 색부터 고르면 위험합니다",
+            "월세나 관리비가 떠오르는 묵직한 돈이에요.\n생활감이 갑자기 선명해져요",
+            "작은 호캉스가 아니라 제대로 쉬는 계획이에요.\n침대가 먼저 초대장을 보냅니다",
+        ]),
+        PurchaseAnalogyTier(minimum: 500_000, messages: [
+            "로봇청소기에게 바닥을 맡길 수 있는 돈이에요.\n청소는 점점 협상 대상",
+            "괜찮은 헤드폰과 여유가 같이 보이는 금액이에요.\n소음 차단 예산 확보",
+            "주말을 꽤 그럴듯하게 바꿀 수 있어요.\n집 밖 공기가 후보에 올랐습니다",
+            "가방 하나쯤은 진지하게 비교하게 되는 돈이에요.\n후기 정독 모드 진입",
+        ]),
+        PurchaseAnalogyTier(minimum: 100_000, messages: [
+            "장바구니 무료배송 문턱은 가볍게 넘겼어요.\n이제 마음의 문턱이 문제",
+            "괜찮은 운동화가 시야에 들어오는 금액이에요.\n출근길 핑계가 생겼습니다",
+            "맛있는 저녁을 꽤 자신 있게 고를 수 있어요.\n메뉴판 앞에서 덜 작아져요",
+            "필요했던 물건 하나는 해결 가능한 돈이에요.\n핑계보다 결제가 빨라질 수 있어요",
+        ]),
     ]
 
     private func purchaseAnalogy(for amount: Double, at date: Date, landscape: Bool) -> String {
@@ -386,17 +418,31 @@ struct DashboardView: View {
         }
 
         let value = max(amount, 0)
-        guard let cheapest = Self.purchaseAnalogies.first,
+        guard let cheapest = Self.smallPurchaseAnalogies.first,
               value >= cheapest.price else {
-            let remaining = max((Self.purchaseAnalogies.first?.price ?? 1_500) - value, 0)
+            let remaining = max((Self.smallPurchaseAnalogies.first?.price ?? 1_500) - value, 0)
             let line = "삼각김밥 하나까지 \(MoneyFormat.won(remaining, symbol: symbol, decimals: false)) 남았어요"
             return line
         }
 
-        let candidates = Self.purchaseAnalogies.filter { value >= $0.price }
         let day = Calendar.current.ordinality(of: .day, in: .era, for: date) ?? 0
-        let index = abs(day + scope.rawValue * 7) % candidates.count
-        let item = candidates[index]
+        let seed = abs(day + scope.rawValue * 7)
+
+        if let tier = Self.purchaseAnalogyTiers.first(where: { value >= $0.minimum }) {
+            let message = tier.messages[seed % tier.messages.count]
+            return landscape ? message.replacingOccurrences(of: "\n", with: " ") : message
+        }
+
+        let candidates = Self.smallPurchaseAnalogies.filter {
+            value >= $0.price && Int(value / $0.price) <= 8
+        }
+        let fallbackCandidates = Self.smallPurchaseAnalogies.filter { value >= $0.price }
+        let pool = candidates.isEmpty ? fallbackCandidates : candidates
+        guard !pool.isEmpty else {
+            return landscape ? "이 금액도 차곡차곡 쌓이는 중..." : "이 금액도\n차곡차곡 쌓이는 중..."
+        }
+
+        let item = pool[seed % pool.count]
         let count = max(1, Int(value / item.price))
         let lead = "이 돈이면 \(item.name) \(count.formatted(.number))\(item.unit)쯤."
         return landscape ? "\(lead) \(item.punchline)" : "\(lead)\n\(item.punchline)"
