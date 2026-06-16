@@ -15,6 +15,8 @@ import SwiftUI
 import GoogleMobileAds
 
 struct AdBannerView: View {
+    let width: CGFloat
+
     /// Production banner ad unit (live ads).
     private let adUnitID = "ca-app-pub-3084145762115882/9435679499"
 
@@ -26,8 +28,8 @@ struct AdBannerView: View {
     @State private var height: CGFloat = 50
 
     var body: some View {
-        BannerRepresentable(adUnitID: adUnitID, height: $height)
-            .frame(maxWidth: .infinity)
+        BannerRepresentable(adUnitID: adUnitID, width: width, height: $height)
+            .frame(width: max(width, 1))
             .frame(height: height)
             .clipped()
     }
@@ -37,8 +39,8 @@ struct AdBannerView: View {
 enum AdBannerLayout {
     /// Anchored adaptive banner — full width, device-optimal height — for the
     /// current orientation and window width.
-    static func adaptiveSize() -> AdSize {
-        largeAnchoredAdaptiveBanner(width: windowWidth())
+    static func adaptiveSize(width: CGFloat? = nil) -> AdSize {
+        largeAnchoredAdaptiveBanner(width: max(width ?? windowWidth(), 1))
     }
 
     static func windowWidth() -> CGFloat {
@@ -61,10 +63,11 @@ enum AdBannerLayout {
 /// Wraps the SDK's UIKit `BannerView` for SwiftUI, reporting the loaded height.
 private struct BannerRepresentable: UIViewRepresentable {
     let adUnitID: String
+    let width: CGFloat
     @Binding var height: CGFloat
 
     func makeUIView(context: Context) -> BannerView {
-        let adSize = AdBannerLayout.adaptiveSize()
+        let adSize = AdBannerLayout.adaptiveSize(width: width)
         let banner = BannerView(adSize: adSize)
         banner.adUnitID = adUnitID
         banner.rootViewController = AdBannerLayout.rootViewController()
@@ -79,7 +82,7 @@ private struct BannerRepresentable: UIViewRepresentable {
             banner.rootViewController = rootViewController
         }
 
-        let adSize = AdBannerLayout.adaptiveSize()
+        let adSize = AdBannerLayout.adaptiveSize(width: width)
         context.coordinator.requestAdIfNeeded(for: banner, adSize: adSize)
     }
 

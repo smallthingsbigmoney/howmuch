@@ -43,29 +43,34 @@ struct DashboardView: View {
         var isLandscape: Bool { size.width > size.height }
         var isCompactPadWindow: Bool { isPad && isLandscape && size.width < 1_100 }
 
+        var frameWidth: CGFloat { max(size.width, 1) }
+
         var leadingPadding: CGFloat {
             if isCompactPadWindow { return max(92, safeAreaInsets.leading + 44) }
-            if isPad { return isLandscape ? 52 : 44 }
-            return isLandscape ? 32 : 24
+            return 16
         }
 
         var trailingPadding: CGFloat {
-            if isPad { return isLandscape ? 52 : 44 }
-            return isLandscape ? 32 : 24
+            return 16
         }
 
         var horizontalPadding: CGFloat { max(leadingPadding, trailingPadding) }
 
+        var heroSidePadding: CGFloat {
+            if isCompactPadWindow { return 24 }
+            return 16
+        }
+
         var heroMaxWidth: CGFloat {
-            let available = max(size.width - leadingPadding - trailingPadding, 240)
-            if isCompactPadWindow { return min(available, 680) }
-            if isPad { return min(available, isLandscape ? 980 : 720) }
+            let available = max(frameWidth - heroSidePadding * 2, 240)
+            if isCompactPadWindow { return min(available, 620) }
+            if isPad { return min(available, isLandscape ? 820 : 720) }
             return available
         }
 
         var heroAmountFontSize: CGFloat {
-            if isCompactPadWindow { return min(72, max(48, heroMaxWidth * 0.105)) }
-            if isPad { return min(isLandscape ? 96 : 86, max(58, heroMaxWidth * 0.115)) }
+            if isCompactPadWindow { return min(64, max(46, heroMaxWidth * 0.1)) }
+            if isPad { return min(isLandscape ? 84 : 82, max(56, heroMaxWidth * 0.105)) }
             if isLandscape { return min(70, max(44, size.height * 0.16)) }
             return min(56, max(42, size.width * 0.13))
         }
@@ -94,16 +99,22 @@ struct DashboardView: View {
                     topBar(layout: layout)
 
                     heroSection(layout: layout)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(width: layout.frameWidth)
+                        .frame(maxHeight: .infinity, alignment: .center)
+                        .clipped()
 
                     TickerMarquee(
                         engine: engine,
                         mode: dashboardMode == .countdown ? .remainingWork : .earnings
                     )
+                    .frame(width: layout.frameWidth)
+
                     if adConsent.canRequestAds {
-                        AdBannerView()
+                        AdBannerView(width: layout.frameWidth)
+                            .frame(width: layout.frameWidth)
                     }
                 }
+                .frame(width: layout.frameWidth, height: geo.size.height, alignment: .top)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -155,12 +166,14 @@ struct DashboardView: View {
             .buttonStyle(.plain)
             .frame(width: 36, height: 36)
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(width: max(layout.frameWidth - layout.leadingPadding - layout.trailingPadding, 1),
+               alignment: .topLeading)
         .padding(.leading, layout.leadingPadding)
         .padding(.trailing, layout.trailingPadding)
         .padding(.top, layout.topPadding)
         .padding(.bottom, layout.topBarBottomPadding)
         .background(Color.black.opacity(0.001))
+        .frame(width: layout.frameWidth, alignment: .topLeading)
     }
 
     /// Small subtitle under the status line.
@@ -357,7 +370,9 @@ struct DashboardView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, layout.heroSidePadding)
+        .frame(width: layout.frameWidth)
+        .frame(maxHeight: .infinity, alignment: .center)
         .contentShape(Rectangle())
         .onTapGesture {
             advanceHero()
@@ -398,35 +413,68 @@ struct DashboardView: View {
     ]
 
     private static let purchaseAnalogyTiers: [PurchaseAnalogyTier] = [
+        PurchaseAnalogyTier(minimum: 100_000_000, messages: [
+            "억 단위가 되면 장바구니가 아니라 인생 계획표가 열려요.\n숫자가 갑자기 어른스러워졌어요",
+            "이쯤 되면 사고 싶은 물건보다 살고 싶은 방식이 먼저 떠올라요.\n통장이 회의를 소집합니다",
+            "가격표보다 계약서가 먼저 떠오르는 구간이에요.\n계산기도 말수가 줄었어요",
+            "통장 앱이 숫자를 다시 확인하게 만드는 금액이에요.\n쉼표가 존재감을 드러냅니다",
+            "검색창보다 계산기가 더 진지해지는 돈이에요.\n오늘은 숫자가 무겁습니다",
+            "목표라는 단어가 현실 쪽으로 걸어와요.\n괜히 자세를 고쳐 앉게 됩니다",
+        ]),
+        PurchaseAnalogyTier(minimum: 50_000_000, messages: [
+            "차 한 대를 고르는 상상이 꽤 구체적이에요.\n옵션표가 갑자기 말을 겁니다",
+            "전세 보증금이라는 단어가 멀리서 손을 흔들어요.\n숫자가 생활 쪽으로 다가왔습니다",
+            "큰 결정 앞에서 한 번 숨 고르게 되는 돈이에요.\n장바구니보단 메모장이 어울립니다",
+            "가볍게 넘길 금액은 확실히 아니에요.\n통장도 목소리를 낮춥니다",
+        ]),
+        PurchaseAnalogyTier(minimum: 30_000_000, messages: [
+            "차 견적서가 제법 자연스럽게 열리는 금액이에요.\n색상 고민까지는 무료입니다",
+            "긴 여행이 아니라 삶의 속도를 바꾸는 돈이에요.\n달력보다 계획표가 먼저 열려요",
+            "큰 가전 몇 개가 아니라 집 분위기가 바뀌는 금액이에요.\n공간이 먼저 설렙니다",
+            "숫자가 커지니 소비보다 선택지가 먼저 보여요.\n이건 꽤 기분 좋은 무게감이에요",
+        ]),
         PurchaseAnalogyTier(minimum: 10_000_000, messages: [
-            "중고차 검색창이 열리는 금액이에요.\n손가락은 아직 침착한 척",
+            "중고차 검색창이 슬쩍 현실로 내려오는 금액이에요.\n손가락은 아직 침착한 척",
             "가전 매장 한 바퀴가 진지해지는 돈이에요.\n냉장고도 눈치를 봅니다",
             "큰 여행 계획이 슬쩍 현실로 내려왔어요.\n달력 앱이 바빠질 차례",
             "견적서가 말을 걸기 시작하는 금액이에요.\n통장은 오늘 꽤 당당해요",
+            "가족 식사 한 번이 아니라 가족회의 안건이 되는 돈이에요.\n메뉴판 밖으로 나왔습니다",
+        ]),
+        PurchaseAnalogyTier(minimum: 5_000_000, messages: [
+            "프리미엄 가전 하나는 당당히 고를 수 있는 돈이에요.\n후기 정독 모드 진입",
+            "여행지가 가까운 곳에서 먼 곳으로 바뀌는 금액이에요.\n여권이 살짝 들뜹니다",
+            "노트북과 주변기기까지 한 번에 상상되는 돈이에요.\n책상이 미래를 봅니다",
+            "큰 결제 앞에서도 손이 덜 떨리는 구간이에요.\n멋진 척하기 딱 좋아요",
         ]),
         PurchaseAnalogyTier(minimum: 3_000_000, messages: [
             "노트북에 모니터까지 고민되는 돈이에요.\n책상이 갑자기 좁아 보여요",
             "이사 비용이라는 단어가 현실감을 얻었어요.\n박스부터 사면 안 됩니다",
             "주말 여행이 아니라 꽤 큰 여행이 보여요.\n연차 달력이 반짝입니다",
             "가전 하나는 당당히 데려올 수 있어요.\n장바구니가 자세를 고쳐 앉았어요",
+            "운동 장비보다 운동할 마음까지 살 수 있을 것 같아요.\n문제는 내일의 나",
         ]),
         PurchaseAnalogyTier(minimum: 1_000_000, messages: [
             "프리미엄 노트북이 장바구니에서 손을 흔들어요.\n아직은 눈싸움 중",
             "최신 스마트폰이 꽤 현실적인 금액이에요.\n케이스 색부터 고르면 위험합니다",
             "월세나 관리비가 떠오르는 묵직한 돈이에요.\n생활감이 갑자기 선명해져요",
             "작은 호캉스가 아니라 제대로 쉬는 계획이에요.\n침대가 먼저 초대장을 보냅니다",
+            "취미 하나쯤은 꽤 진지하게 시작할 수 있어요.\n장비부터 사면 안 됩니다",
+            "고장 난 물건 교체가 아니라 업그레이드가 보이는 돈이에요.\n눈높이가 올라갑니다",
         ]),
         PurchaseAnalogyTier(minimum: 500_000, messages: [
             "로봇청소기에게 바닥을 맡길 수 있는 돈이에요.\n청소는 점점 협상 대상",
             "괜찮은 헤드폰과 여유가 같이 보이는 금액이에요.\n소음 차단 예산 확보",
             "주말을 꽤 그럴듯하게 바꿀 수 있어요.\n집 밖 공기가 후보에 올랐습니다",
             "가방 하나쯤은 진지하게 비교하게 되는 돈이에요.\n후기 정독 모드 진입",
+            "고급 의자 하나가 허리를 설득하는 금액이에요.\n자세가 갑자기 중요해집니다",
         ]),
         PurchaseAnalogyTier(minimum: 100_000, messages: [
             "장바구니 무료배송 문턱은 가볍게 넘겼어요.\n이제 마음의 문턱이 문제",
             "괜찮은 운동화가 시야에 들어오는 금액이에요.\n출근길 핑계가 생겼습니다",
             "맛있는 저녁을 꽤 자신 있게 고를 수 있어요.\n메뉴판 앞에서 덜 작아져요",
             "필요했던 물건 하나는 해결 가능한 돈이에요.\n핑계보다 결제가 빨라질 수 있어요",
+            "마트 계산대 앞에서 덜 놀랄 수 있는 금액이에요.\n장바구니가 조금 당당합니다",
+            "선물 하나 고를 때 예산부터 숨지 않아도 돼요.\n마음이 살짝 넓어집니다",
         ]),
     ]
 
@@ -521,7 +569,9 @@ struct DashboardView: View {
             .buttonStyle(.plain)
             .transition(.opacity.combined(with: .scale(scale: 0.9)))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, layout.heroSidePadding)
+        .frame(width: layout.frameWidth)
+        .frame(maxHeight: .infinity, alignment: .center)
         .contentShape(Rectangle())
         .onTapGesture {
             returnToEarnings()
