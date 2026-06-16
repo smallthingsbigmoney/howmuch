@@ -3,7 +3,7 @@
 //  smallthings, bigmoney.
 //
 //  Screen 2 — Native sheet modal with salary / schedule configuration.
-//  닫기 saves the current draft and closes the sheet.
+//  저장 commits the current draft and closes the sheet.
 //
 
 import SwiftUI
@@ -21,7 +21,7 @@ struct SettingsSheetView: View {
         self.onComplete = onComplete
     }
 
-    // Local draft state — committed to the model when 닫기 is tapped.
+    // Local draft state — committed to the model when 저장 is tapped.
     @State private var salaryType: SalaryType = .yearly
     @State private var salaryText: String = ""
     @State private var currency: Currency = .krw
@@ -59,13 +59,13 @@ struct SettingsSheetView: View {
             .navigationTitle("앱 설정")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         closeAndSave()
                     } label: {
-                        Text("닫기")
-                            .font(.system(size: 15))
-                            .foregroundStyle(Color(.secondaryLabel))
+                        Text("저장")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Color.money)
                     }
                 }
 

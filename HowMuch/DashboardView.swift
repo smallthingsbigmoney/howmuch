@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct DashboardView: View {
     @EnvironmentObject private var model: AppModel
@@ -34,24 +35,59 @@ struct DashboardView: View {
         let currentTimeColor: Color
     }
 
-    var body: some View {
-        ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
+    private struct DashboardLayout {
+        let size: CGSize
+        let isPad: Bool
 
-            VStack(spacing: 0) {
-                heroSection(landscape: false)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                TickerMarquee(
-                    engine: engine,
-                    mode: dashboardMode == .countdown ? .remainingWork : .earnings
-                )
-                if adConsent.canRequestAds {
-                    AdBannerView()
+        var isLandscape: Bool { size.width > size.height }
+
+        var horizontalPadding: CGFloat {
+            if isPad { return isLandscape ? 52 : 44 }
+            return isLandscape ? 32 : 24
+        }
+
+        var heroMaxWidth: CGFloat {
+            let available = max(size.width - horizontalPadding * 2, 240)
+            if isPad { return min(available, isLandscape ? 980 : 720) }
+            return available
+        }
+
+        var heroAmountFontSize: CGFloat {
+            if isPad { return min(isLandscape ? 96 : 86, max(58, heroMaxWidth * 0.115)) }
+            if isLandscape { return min(70, max(44, size.height * 0.16)) }
+            return min(56, max(42, size.width * 0.13))
+        }
+
+        var heroSpacing: CGFloat { isLandscape ? 10 : 16 }
+        var topPadding: CGFloat { isLandscape ? 8 : 12 }
+        var topBarBottomPadding: CGFloat { isLandscape ? 4 : 8 }
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let layout = DashboardLayout(
+                size: geo.size,
+                isPad: UIDevice.current.userInterfaceIdiom == .pad
+            )
+
+            ZStack {
+                Color.black.ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    topBar(layout: layout)
+
+                    heroSection(layout: layout)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    TickerMarquee(
+                        engine: engine,
+                        mode: dashboardMode == .countdown ? .remainingWork : .earnings
+                    )
+                    if adConsent.canRequestAds {
+                        AdBannerView()
+                    }
                 }
             }
-
-            topBar()
-                .zIndex(1)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onReceive(tick) {
@@ -70,7 +106,7 @@ struct DashboardView: View {
 
     // MARK: - Top Bar
 
-    private func topBar() -> some View {
+    private func topBar(layout: DashboardLayout) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(statusText)
@@ -97,15 +133,15 @@ struct DashboardView: View {
             } label: {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(Color(red: 34 / 255, green: 34 / 255, blue: 34 / 255)) // #222222
+                    .foregroundStyle(.white.opacity(0.45))
             }
             .buttonStyle(.plain)
             .frame(width: 36, height: 36)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
+        .padding(.horizontal, layout.horizontalPadding)
+        .padding(.top, layout.topPadding)
+        .padding(.bottom, layout.topBarBottomPadding)
         .background(Color.black.opacity(0.001))
     }
 
@@ -230,16 +266,16 @@ struct DashboardView: View {
     }
 
     @ViewBuilder
-    private func heroSection(landscape: Bool) -> some View {
+    private func heroSection(layout: DashboardLayout) -> some View {
         if dashboardMode == .countdown {
-            countdownHeroSection(landscape: landscape)
+            countdownHeroSection(layout: layout)
         } else {
-            earningsHeroSection(landscape: landscape)
+            earningsHeroSection(layout: layout)
         }
     }
 
-    private func earningsHeroSection(landscape: Bool) -> some View {
-        VStack(spacing: 16) {
+    private func earningsHeroSection(layout: DashboardLayout) -> some View {
+        VStack(spacing: layout.heroSpacing) {
             Text(heroLabel)
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(.secondary)
@@ -250,13 +286,14 @@ struct DashboardView: View {
             // Decimals only while money is live (hidden before work / day off).
             TimelineView(.animation) { context in
                 let value = heroAmount(at: context.date)
-                Text(MoneyFormat.won(value, symbol: symbol, decimals: !(isBeforeWork || isDayOff)))
-                    .font(.system(size: landscape ? 76 : 54, weight: .heavy, design: .rounded))
+                Text(MoneyFormat.won(value, symbol: symbol, decimals: showsHeroAmountDecimals))
+                    .font(.system(size: layout.heroAmountFontSize, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(Color.money)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.4)
-                    .padding(.horizontal, 24)
+                    .minimumScaleFactor(0.22)
+                    .allowsTightening(true)
+                    .frame(width: layout.heroMaxWidth, alignment: .center)
             }
 
             Group {
@@ -264,7 +301,7 @@ struct DashboardView: View {
                     TimelineView(.animation) { context in
                         Text(purchaseAnalogy(for: heroAmount(at: context.date),
                                              at: context.date,
-                                             landscape: landscape))
+                                             landscape: layout.isLandscape))
                             .foregroundStyle(.secondary)
                     }
                 } else if isDayOff || isAfterWork {
@@ -280,9 +317,10 @@ struct DashboardView: View {
                 }
             }
             .font(.system(size: 17, weight: .regular))
-            .lineLimit(landscape ? 1 : 2)
+            .lineLimit(layout.isLandscape ? 1 : 2)
             .minimumScaleFactor(0.75)
             .multilineTextAlignment(.center)
+            .frame(maxWidth: layout.heroMaxWidth)
 
             // 오늘이 아닌 기간을 볼 때만 노출되는 복귀 버튼.
             // 버튼이 없을 땐 공간을 예약하지 않아, 본문이 상하 중앙에 놓임.
@@ -310,6 +348,10 @@ struct DashboardView: View {
 
     private func heroAmount(at date: Date) -> Double {
         isPreWorkToday ? engine.perDay : engine.earned(scope, at: date)
+    }
+
+    private var showsHeroAmountDecimals: Bool {
+        scope == .today && !(isBeforeWork || isDayOff)
     }
 
     private struct PurchaseAnalogy {
@@ -372,23 +414,24 @@ struct DashboardView: View {
         }
     }
 
-    private func countdownHeroSection(landscape: Bool) -> some View {
-        VStack(spacing: 16) {
+    private func countdownHeroSection(layout: DashboardLayout) -> some View {
+        VStack(spacing: layout.heroSpacing) {
             TimelineView(.animation) { context in
                 if let state = countdownState(at: context.date) {
-                    VStack(spacing: 16) {
+                    VStack(spacing: layout.heroSpacing) {
                         Text(state.title)
                             .font(.system(size: 17, weight: .medium))
                             .foregroundStyle(.secondary)
                             .contentTransition(.opacity)
 
                         Text(DurationFormat.clockCountdown(state.target.timeIntervalSince(context.date)))
-                            .font(.system(size: landscape ? 76 : 54, weight: .heavy, design: .rounded))
+                            .font(.system(size: layout.heroAmountFontSize, weight: .heavy, design: .rounded))
                             .monospacedDigit()
                             .foregroundStyle(Color.timeAccent)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.35)
-                            .padding(.horizontal, 24)
+                            .minimumScaleFactor(0.22)
+                            .allowsTightening(true)
+                            .frame(width: layout.heroMaxWidth, alignment: .center)
                             .contentTransition(.numericText())
 
                         Text("현재 시간 \(DateFormat.clockTime(context.date))")
@@ -396,6 +439,7 @@ struct DashboardView: View {
                             .foregroundStyle(state.currentTimeColor)
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
+                            .frame(maxWidth: layout.heroMaxWidth)
                     }
                 }
             }

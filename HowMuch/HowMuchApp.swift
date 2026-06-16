@@ -28,8 +28,8 @@ struct HowMuchApp: App {
     }
 }
 
-/// Keeps the app portrait-first. iPad review can run iPhone apps in compatibility
-/// mode, where landscape made the dashboard easy to crop.
+/// Supports the orientations declared in the target settings. iPhone skips
+/// upside-down, while iPad can use every orientation.
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
@@ -39,7 +39,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        .portrait
+        let idiom = window?.traitCollection.userInterfaceIdiom ?? UIDevice.current.userInterfaceIdiom
+        return idiom == .pad ? .all : .allButUpsideDown
     }
 }
 
