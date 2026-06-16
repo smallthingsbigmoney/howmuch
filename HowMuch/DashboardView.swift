@@ -108,10 +108,12 @@ struct DashboardView: View {
                         mode: dashboardMode == .countdown ? .remainingWork : .earnings
                     )
                     .frame(width: layout.frameWidth)
+                    .zIndex(2)
 
                     if adConsent.canRequestAds {
                         AdBannerView(width: layout.frameWidth)
                             .frame(width: layout.frameWidth)
+                            .zIndex(1)
                     }
                 }
                 .frame(width: layout.frameWidth, height: geo.size.height, alignment: .top)
@@ -676,8 +678,8 @@ struct TickerMarquee: View {
         .frame(height: 48)
         .clipped()
         .contentShape(Rectangle())
-        .gesture(
-            DragGesture()
+        .highPriorityGesture(
+            DragGesture(minimumDistance: 1, coordinateSpace: .local)
                 .updating($dragCurrent) { value, state, _ in
                     state = value.translation.width
                 }
