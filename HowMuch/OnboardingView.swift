@@ -137,7 +137,6 @@ struct OnboardingView: View {
             }
         }
         .onAppear {
-            OrientationLock.set(.portrait) // onboarding is portrait-only
             startTyping()
         }
         .onDisappear { typingTimer?.invalidate() }

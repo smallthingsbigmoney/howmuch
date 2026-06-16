@@ -31,8 +31,6 @@ struct HowMuchApp: App {
 /// Keeps the app portrait-first. iPad review can run iPhone apps in compatibility
 /// mode, where landscape made the dashboard easy to crop.
 final class AppDelegate: NSObject, UIApplicationDelegate {
-    static var orientationLock: UIInterfaceOrientationMask = .portrait
-
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         // AdMob starts after ATT has had a chance to appear.
@@ -41,19 +39,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        AppDelegate.orientationLock
-    }
-}
-
-enum OrientationLock {
-    /// Sets the allowed orientations and rotates to match right away.
-    static func set(_ mask: UIInterfaceOrientationMask) {
-        AppDelegate.orientationLock = mask
-        guard let scene = UIApplication.shared.connectedScenes
-            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
-        else { return }
-        scene.requestGeometryUpdate(.iOS(interfaceOrientations: mask))
-        scene.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        .portrait
     }
 }
 

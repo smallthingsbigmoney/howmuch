@@ -35,42 +35,25 @@ struct DashboardView: View {
     }
 
     var body: some View {
-        // Orientation is derived from the actual layout size, NOT from
-        // verticalSizeClass — that environment value can get stuck on .compact
-        // after a landscape→portrait rotation, which made the whole UI keep
-        // rendering at landscape sizes (huge hero, off-screen status line).
-        GeometryReader { geo in
-            let landscape = geo.size.width > geo.size.height
+        ZStack(alignment: .top) {
+            Color.black.ignoresSafeArea()
 
-            ZStack(alignment: .top) {
-                Color.black.ignoresSafeArea()
-
-                // The ticker and banner are pinned to the bottom; the hero fills
-                // the remaining space. The top bar is overlaid separately so
-                // real-device status bar/safe-area differences cannot push it
-                // off-screen.
-                VStack(spacing: 0) {
-                    heroSection(landscape: landscape)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    TickerMarquee(
-                        engine: engine,
-                        mode: dashboardMode == .countdown ? .remainingWork : .earnings
-                    )
-                    if adConsent.canRequestAds {
-                        AdBannerView()
-                            // Rebuild the banner on rotation so it re-requests at the
-                            // new width instead of staying at the old orientation size.
-                            .id(landscape)
-                        }
+            VStack(spacing: 0) {
+                heroSection(landscape: false)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                TickerMarquee(
+                    engine: engine,
+                    mode: dashboardMode == .countdown ? .remainingWork : .earnings
+                )
+                if adConsent.canRequestAds {
+                    AdBannerView()
                 }
-
-                topBar(landscape: landscape)
-                    .zIndex(1)
             }
-            // Fill the GeometryReader exactly so the layout always matches the
-            // current orientation's size (no stale portrait width in landscape).
-            .frame(width: geo.size.width, height: geo.size.height)
+
+            topBar()
+                .zIndex(1)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onReceive(tick) {
             now = $0
             if dashboardMode == .countdown && countdownState(at: $0) == nil {
@@ -79,7 +62,6 @@ struct DashboardView: View {
         }
         .onAppear {
             dashboardMode = .earnings
-            OrientationLock.set(.portrait)
         }
         .sheet(isPresented: $showSettings) {
             SettingsSheetView()
@@ -88,32 +70,28 @@ struct DashboardView: View {
 
     // MARK: - Top Bar
 
-    private func topBarTopPadding(landscape: Bool) -> CGFloat {
-        landscape ? 8 : 12
-    }
+    private func topBar() -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(statusText)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
 
-    private func topBar(landscape: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(statusText)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(.white.opacity(0.9))
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if let subtitle = statusSubtitle {
-                Text(subtitle)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.55))
-                    .lineLimit(1)
+                if let subtitle = statusSubtitle {
+                    Text(subtitle)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(.white.opacity(0.55))
+                        .lineLimit(1)
+                }
             }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            topBarTapped()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.trailing, 36) // keep the text clear of the gear overlay
-        .overlay(alignment: .topTrailing) {
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                topBarTapped()
+            }
+
             Button {
                 showSettings = true
             } label: {
@@ -122,9 +100,11 @@ struct DashboardView: View {
                     .foregroundStyle(Color(red: 34 / 255, green: 34 / 255, blue: 34 / 255)) // #222222
             }
             .buttonStyle(.plain)
+            .frame(width: 36, height: 36)
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(.horizontal, 24)
-        .padding(.top, topBarTopPadding(landscape: landscape))
+        .padding(.top, 12)
         .padding(.bottom, 8)
         .background(Color.black.opacity(0.001))
     }
