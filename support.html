@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>지금 얼마!? 지원</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b0f12;
+      --panel: #12181d;
+      --text: #eef4f0;
+      --muted: #99a39d;
+      --accent: #39e886;
+      --line: #233029;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+      background: var(--bg);
+      color: var(--text);
+    }
+    main {
+      width: min(860px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 56px 0 72px;
+    }
+    header, section {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    header { padding: 28px; }
+    section {
+      margin-top: 18px;
+      padding: 24px 28px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(32px, 7vw, 54px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 0 0 10px;
+      font-size: 22px;
+    }
+    p, li { font-size: 16px; }
+    ul { padding-left: 22px; }
+    a { color: var(--accent); }
+    .summary, .muted { color: var(--muted); }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #07100b;
+      font-weight: 800;
+      text-decoration: none;
+    }
+    footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>지금 얼마!? 지원</h1>
+      <p class="summary">
+        앱 이용 중 궁금한 점, 오류 제보, 개선 제안이 있다면 아래 문의 방법을 이용해 주세요.
+      </p>
+    </header>
+
+    <section>
+      <h2>문의하기</h2>
+      <p>
+        GitHub 문의 게시판에 증상과 사용 중인 기기, iOS 버전, 앱 버전을 남겨주시면 확인 후 답변하겠습니다.
+        급여 금액처럼 민감한 정보는 적지 않아도 됩니다.
+      </p>
+      <a class="button" href="https://github.com/smallthingsbigmoney/howmuch/issues/new">문의 남기기</a>
+    </section>
+
+    <section>
+      <h2>자주 확인할 내용</h2>
+      <ul>
+        <li>금액이 맞지 않으면 앱 설정에서 급여 형태, 급여 금액, 근무 요일, 출퇴근 시간을 확인해 주세요.</li>
+        <li>퇴근 알림은 앱 설정에서 알림을 켠 뒤, iOS 설정에서도 알림 허용이 필요합니다.</li>
+        <li>앱 잠금은 기기에 Face ID, Touch ID 또는 암호가 설정되어 있어야 사용할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>개인정보</h2>
+      <p>
+        개인정보 처리방침은 아래 페이지에서 확인할 수 있습니다.
+      </p>
+      <p><a href="https://smallthingsbigmoney.github.io/howmuch/">개인정보 처리방침 보기</a></p>
+    </section>
+
+    <footer>
+      © 2026 Small Things Big Money. All rights reserved.
+    </footer>
+  </main>
+</body>
+</html>

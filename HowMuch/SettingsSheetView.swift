@@ -436,15 +436,12 @@ struct SettingsSheetView: View {
         s.notificationsEnabled = notificationsEnabled
         model.settings = s
 
-        // Permission flow: notification prompt first (if enabled), then the ATT
-        // prompt right after it settles. With notifications off, ATT shows
-        // immediately after save.
         NotificationScheduler.refresh(for: s) {
-            TrackingAuthorization.request()
+            dismiss()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                onComplete(true)
+            }
         }
-
-        dismiss()
-        onComplete(true)
     }
 
     private func resetAll() {

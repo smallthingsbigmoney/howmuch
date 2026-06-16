@@ -79,7 +79,7 @@ struct DashboardView: View {
         }
         .onAppear {
             dashboardMode = .earnings
-            OrientationLock.set(.all) // dashboard supports portrait + landscape
+            OrientationLock.set(.portrait)
         }
         .sheet(isPresented: $showSettings) {
             SettingsSheetView()

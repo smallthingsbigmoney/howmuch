@@ -28,16 +28,14 @@ struct HowMuchApp: App {
     }
 }
 
-/// Lets individual screens restrict device orientation (onboarding = portrait
-/// only; dashboard = all). The mask is consulted by the system on every rotate.
+/// Keeps the app portrait-first. iPad review can run iPhone apps in compatibility
+/// mode, where landscape made the dashboard easy to crop.
 final class AppDelegate: NSObject, UIApplicationDelegate {
-    static var orientationLock: UIInterfaceOrientationMask = .all
+    static var orientationLock: UIInterfaceOrientationMask = .portrait
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        // Initialize AdMob here — NOT in App.init(), which runs before the app
-        // is fully set up and crashed on device during launch bundle resolution.
-        MobileAds.shared.start(completionHandler: nil)
+        // AdMob starts after ATT has had a chance to appear.
         return true
     }
 
@@ -66,6 +64,8 @@ struct RootView: View {
 
     @State private var isLocked = false
     @State private var authInFlight = false
+    @State private var adsStarted = false
+    @State private var adsStartInFlight = false
 
     var body: some View {
         ZStack {
@@ -96,14 +96,14 @@ struct RootView: View {
                 isLocked = true
                 attemptUnlock()
             } else {
-                refreshAdConsentIfReady()
+                prepareAdsIfReady()
             }
         }
         .onChange(of: model.hasOnboarded) { _, _ in
-            refreshAdConsentIfReady()
+            prepareAdsIfReady()
         }
         .onChange(of: isLocked) { _, locked in
-            if !locked { refreshAdConsentIfReady() }
+            if !locked { prepareAdsIfReady() }
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
@@ -114,15 +114,27 @@ struct RootView: View {
             case .active:
                 UIApplication.shared.isIdleTimerDisabled = true
                 if isLocked { attemptUnlock() }
+                if !isLocked { prepareAdsIfReady() }
             default:
                 break
             }
         }
     }
 
-    private func refreshAdConsentIfReady() {
-        guard model.hasOnboarded, !isLocked else { return }
-        adConsent.refreshForCurrentLaunch()
+    private func prepareAdsIfReady() {
+        guard model.hasOnboarded, !isLocked, !adsStarted, !adsStartInFlight else { return }
+        guard TrackingAuthorization.canStartFlowNow else { return }
+        adsStartInFlight = true
+
+        TrackingAuthorization.requestIfNeeded {
+            MobileAds.shared.start { _ in
+                DispatchQueue.main.async {
+                    adsStarted = true
+                    adsStartInFlight = false
+                    adConsent.refreshForCurrentLaunch()
+                }
+            }
+        }
     }
 
     private func attemptUnlock() {
