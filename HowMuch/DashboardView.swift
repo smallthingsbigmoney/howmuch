@@ -38,28 +38,44 @@ struct DashboardView: View {
     private struct DashboardLayout {
         let size: CGSize
         let isPad: Bool
+        let safeAreaInsets: EdgeInsets
 
         var isLandscape: Bool { size.width > size.height }
+        var isCompactPadWindow: Bool { isPad && isLandscape && size.width < 1_100 }
 
-        var horizontalPadding: CGFloat {
+        var leadingPadding: CGFloat {
+            if isCompactPadWindow { return max(92, safeAreaInsets.leading + 44) }
             if isPad { return isLandscape ? 52 : 44 }
             return isLandscape ? 32 : 24
         }
 
+        var trailingPadding: CGFloat {
+            if isPad { return isLandscape ? 52 : 44 }
+            return isLandscape ? 32 : 24
+        }
+
+        var horizontalPadding: CGFloat { max(leadingPadding, trailingPadding) }
+
         var heroMaxWidth: CGFloat {
-            let available = max(size.width - horizontalPadding * 2, 240)
+            let available = max(size.width - leadingPadding - trailingPadding, 240)
+            if isCompactPadWindow { return min(available, 680) }
             if isPad { return min(available, isLandscape ? 980 : 720) }
             return available
         }
 
         var heroAmountFontSize: CGFloat {
+            if isCompactPadWindow { return min(72, max(48, heroMaxWidth * 0.105)) }
             if isPad { return min(isLandscape ? 96 : 86, max(58, heroMaxWidth * 0.115)) }
             if isLandscape { return min(70, max(44, size.height * 0.16)) }
             return min(56, max(42, size.width * 0.13))
         }
 
         var heroSpacing: CGFloat { isLandscape ? 10 : 16 }
-        var topPadding: CGFloat { isLandscape ? 8 : 12 }
+        var topPadding: CGFloat {
+            if isCompactPadWindow { return max(48, safeAreaInsets.top + 20) }
+            if isPad { return max(isLandscape ? 18 : 16, safeAreaInsets.top + 10) }
+            return isLandscape ? 8 : 12
+        }
         var topBarBottomPadding: CGFloat { isLandscape ? 4 : 8 }
     }
 
@@ -67,7 +83,8 @@ struct DashboardView: View {
         GeometryReader { geo in
             let layout = DashboardLayout(
                 size: geo.size,
-                isPad: UIDevice.current.userInterfaceIdiom == .pad
+                isPad: UIDevice.current.userInterfaceIdiom == .pad,
+                safeAreaInsets: geo.safeAreaInsets
             )
 
             ZStack {
@@ -139,7 +156,8 @@ struct DashboardView: View {
             .frame(width: 36, height: 36)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(.horizontal, layout.horizontalPadding)
+        .padding(.leading, layout.leadingPadding)
+        .padding(.trailing, layout.trailingPadding)
         .padding(.top, layout.topPadding)
         .padding(.bottom, layout.topBarBottomPadding)
         .background(Color.black.opacity(0.001))
@@ -293,7 +311,7 @@ struct DashboardView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.22)
                     .allowsTightening(true)
-                    .frame(width: layout.heroMaxWidth, alignment: .center)
+                    .frame(maxWidth: layout.heroMaxWidth, alignment: .center)
             }
 
             Group {
@@ -477,7 +495,7 @@ struct DashboardView: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.22)
                             .allowsTightening(true)
-                            .frame(width: layout.heroMaxWidth, alignment: .center)
+                            .frame(maxWidth: layout.heroMaxWidth, alignment: .center)
                             .contentTransition(.numericText())
 
                         Text("현재 시간 \(DateFormat.clockTime(context.date))")
