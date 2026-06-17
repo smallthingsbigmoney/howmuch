@@ -99,7 +99,7 @@ private struct BannerRepresentable: UIViewRepresentable {
             guard banner.rootViewController != nil else { return }
             requestedWidth = adSize.size.width
             didRequestAd = true
-            banner.load(Request())
+            banner.load(AdRequestFactory.nonPersonalizedRequest())
         }
 
         func requestAdIfNeeded(for banner: BannerView, adSize: AdSize) {
@@ -122,5 +122,15 @@ private struct BannerRepresentable: UIViewRepresentable {
             print("⚠️ AdMob banner failed to load:", error.localizedDescription)
             #endif
         }
+    }
+}
+
+enum AdRequestFactory {
+    static func nonPersonalizedRequest() -> Request {
+        let request = Request()
+        let extras = Extras()
+        extras.additionalParameters = ["npa": "1"]
+        request.register(extras)
+        return request
     }
 }

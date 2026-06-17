@@ -22,8 +22,7 @@ enum NotificationScheduler {
     /// Requests permission (the system prompt shows only the first time) and
     /// then (re)schedules when the settings sheet closes.
     /// `completion` runs on the main thread once the permission step is settled
-    /// (immediately when notifications are off), so the caller can chain the
-    /// next prompt (e.g. ATT) without the two system alerts overlapping.
+    /// (immediately when notifications are off).
     static func refresh(for settings: UserSettings, completion: (() -> Void)? = nil) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
