@@ -10,6 +10,16 @@
 import SwiftUI
 import UIKit
 
+private extension VerticalAlignment {
+    enum StatusTitleCenter: AlignmentID {
+        static func defaultValue(in context: ViewDimensions) -> CGFloat {
+            context[VerticalAlignment.center]
+        }
+    }
+
+    static let statusTitleCenter = VerticalAlignment(StatusTitleCenter.self)
+}
+
 struct DashboardView: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var adConsent: AdConsentManager
@@ -110,7 +120,7 @@ struct DashboardView: View {
                     .frame(width: layout.frameWidth)
                     .zIndex(2)
 
-                    if adConsent.canRequestAds {
+                    if adConsent.canRequestAds && !layout.isLandscape {
                         AdBannerView(width: layout.frameWidth)
                             .frame(width: layout.frameWidth)
                             .zIndex(1)
@@ -137,13 +147,16 @@ struct DashboardView: View {
     // MARK: - Top Bar
 
     private func topBar(layout: DashboardLayout) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .statusTitleCenter, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(statusText)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(.white.opacity(0.9))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+                    .alignmentGuide(.statusTitleCenter) { dimensions in
+                        dimensions[VerticalAlignment.center]
+                    }
 
                 if let subtitle = statusSubtitle {
                     Text(subtitle)
@@ -167,6 +180,9 @@ struct DashboardView: View {
             }
             .buttonStyle(.plain)
             .frame(width: 36, height: 36)
+            .alignmentGuide(.statusTitleCenter) { dimensions in
+                dimensions[VerticalAlignment.center]
+            }
         }
         .frame(width: max(layout.frameWidth - layout.leadingPadding - layout.trailingPadding, 1),
                alignment: .topLeading)

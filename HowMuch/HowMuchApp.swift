@@ -33,7 +33,7 @@ struct HowMuchApp: App {
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        // AdMob starts after onboarding/unlock; requests are non-personalized.
+        // AdMob starts after ATT has had a chance to appear.
         return true
     }
 
@@ -110,13 +110,16 @@ struct RootView: View {
 
     private func prepareAdsIfReady() {
         guard model.hasOnboarded, !isLocked, !adsStarted, !adsStartInFlight else { return }
+        guard TrackingAuthorization.canStartFlowNow else { return }
         adsStartInFlight = true
 
-        MobileAds.shared.start { _ in
-            DispatchQueue.main.async {
-                adsStarted = true
-                adsStartInFlight = false
-                adConsent.refreshForCurrentLaunch()
+        TrackingAuthorization.requestIfNeeded {
+            MobileAds.shared.start { _ in
+                DispatchQueue.main.async {
+                    adsStarted = true
+                    adsStartInFlight = false
+                    adConsent.refreshForCurrentLaunch()
+                }
             }
         }
     }

@@ -12,6 +12,8 @@
 	<string>ca-app-pub-3084145762115882~1006525133</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>관심사에 맞는 광고를 보여드리기 위해 사용돼요. 허용하지 않아도 앱은 그대로 이용할 수 있어요.</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>

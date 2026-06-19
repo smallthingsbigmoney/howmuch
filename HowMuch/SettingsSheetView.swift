@@ -40,7 +40,7 @@ struct SettingsSheetView: View {
     @State private var showMissingSalaryAlert = false
     @State private var showMissingWorkingDayAlert = false
 
-    @FocusState private var salaryFieldFocused: Bool
+    @State private var salaryFieldFocused = false
 
     var body: some View {
         NavigationStack {
@@ -69,13 +69,6 @@ struct SettingsSheetView: View {
                     }
                 }
 
-                // The number pad has no dismiss key — give it a 완료 button.
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("완료") { salaryFieldFocused = false }
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.money)
-                }
             }
         }
         .onAppear(perform: loadDraft)
@@ -111,28 +104,33 @@ struct SettingsSheetView: View {
     /// Two tight rows: 급여 형태 picker, then ₩ + amount kept right next to each other.
     private var salarySection: some View {
         Section("급여") {
-            HStack {
-                Text("급여 형태")
-                    .font(.system(size: 15))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Menu {
-                    Picker("급여 형태", selection: $salaryType) {
-                        ForEach(SalaryType.allCases) { type in
-                            Text(type.rawValue).tag(type)
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(salaryType.rawValue)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color.money)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Color(.secondaryLabel))
+            Menu {
+                Picker("급여 형태", selection: $salaryType) {
+                    ForEach(SalaryType.allCases) { type in
+                        Text(type.rawValue).tag(type)
                     }
                 }
+                .onChange(of: salaryType) { _, _ in
+                    dismissSalaryKeyboard()
+                }
+            } label: {
+                HStack {
+                    Text("급여 형태")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(salaryType.rawValue)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.money)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color(.secondaryLabel))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded { dismissSalaryKeyboard() })
 
             HStack(spacing: 5) {
                 // "금액 ₩" — tap to switch currency (₩/$/¥/€)
@@ -141,6 +139,9 @@ struct SettingsSheetView: View {
                         ForEach(Currency.allCases) { unit in
                             Text(unit.label).tag(unit)
                         }
+                    }
+                    .onChange(of: currency) { _, _ in
+                        dismissSalaryKeyboard()
                     }
                 } label: {
                     HStack(spacing: 4) {
@@ -154,16 +155,12 @@ struct SettingsSheetView: View {
                     }
                 }
                 Spacer()
-                TextField("10,000,000", text: $salaryText)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .font(.system(size: 16, weight: .bold).monospacedDigit())
-                    .foregroundStyle(Color.money)
-                    .fixedSize() // hugs its content so it sits right next to the label
-                    .focused($salaryFieldFocused)
-                    .onChange(of: salaryText) { _, newValue in
-                        salaryText = Self.groupedDigits(from: newValue)
-                    }
+                AmountTextField(
+                    text: $salaryText,
+                    isFocused: $salaryFieldFocused,
+                    placeholder: "10,000,000"
+                )
+                .frame(minWidth: 120, maxWidth: 180, minHeight: 24)
             }
             .contentShape(Rectangle())
             .onTapGesture { salaryFieldFocused = true }
@@ -196,6 +193,7 @@ struct SettingsSheetView: View {
     private var startDateSection: some View {
         Section {
             Button {
+                dismissSalaryKeyboard()
                 withAnimation(.snappy(duration: 0.25)) { showStartDatePicker.toggle() }
             } label: {
                 HStack {
@@ -211,6 +209,8 @@ struct SettingsSheetView: View {
                         .foregroundStyle(Color(.secondaryLabel))
                         .rotationEffect(.degrees(showStartDatePicker ? 180 : 0))
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
@@ -224,6 +224,7 @@ struct SettingsSheetView: View {
                 .labelsHidden()
                 .environment(\.locale, Locale(identifier: "ko_KR"))
                 .onChange(of: startDate) { _, _ in
+                    dismissSalaryKeyboard()
                     // Picking a date closes the calendar
                     withAnimation(.snappy(duration: 0.25)) { showStartDatePicker = false }
                 }
@@ -236,7 +237,7 @@ struct SettingsSheetView: View {
     /// 퇴근 알림 토글 — 닫기 시점에 예약/해제됨.
     private var notificationSection: some View {
         Section {
-            Toggle(isOn: $notificationsEnabled) {
+            Toggle(isOn: notificationsBinding) {
                 Text("퇴근 알림")
                     .font(.system(size: 15))
             }
@@ -268,6 +269,7 @@ struct SettingsSheetView: View {
     private var adPrivacySection: some View {
         Section {
             Button {
+                dismissSalaryKeyboard()
                 adConsent.presentPrivacyOptions()
             } label: {
                 Text("광고 동의 관리")
@@ -277,7 +279,7 @@ struct SettingsSheetView: View {
         } header: {
             Text("개인정보")
         } footer: {
-            Text("맞춤형 광고와 개인정보 선택을 다시 확인할 수 있어요.")
+            Text("광고 개인정보 선택을 다시 확인할 수 있어요.")
         }
     }
 
@@ -286,8 +288,19 @@ struct SettingsSheetView: View {
         Binding(
             get: { model.settings.appLockEnabled },
             set: { isOn in
+                dismissSalaryKeyboard()
                 if isOn { enableAppLock() }
                 else { model.settings.appLockEnabled = false }
+            }
+        )
+    }
+
+    private var notificationsBinding: Binding<Bool> {
+        Binding(
+            get: { notificationsEnabled },
+            set: { isOn in
+                dismissSalaryKeyboard()
+                notificationsEnabled = isOn
             }
         )
     }
@@ -313,6 +326,7 @@ struct SettingsSheetView: View {
     private var actionSection: some View {
         Section {
             Button {
+                dismissSalaryKeyboard()
                 showResetAlert = true
             } label: {
                 Text("앱 초기화")
@@ -327,6 +341,7 @@ struct SettingsSheetView: View {
     private func dayToggle(_ day: Weekday) -> some View {
         let isOn = workingDays.contains(day)
         return Button {
+            dismissSalaryKeyboard()
             withAnimation(.snappy(duration: 0.2)) {
                 if isOn { workingDays.remove(day) } else { workingDays.insert(day) }
             }
@@ -351,6 +366,7 @@ struct SettingsSheetView: View {
                          minute: Binding<Int>,
                          isExpanded: Binding<Bool>) -> some View {
         Button {
+            dismissSalaryKeyboard()
             withAnimation(.snappy(duration: 0.25)) { isExpanded.wrappedValue.toggle() }
         } label: {
             HStack {
@@ -366,6 +382,8 @@ struct SettingsSheetView: View {
                     .foregroundStyle(Color(.secondaryLabel))
                     .rotationEffect(.degrees(isExpanded.wrappedValue ? 180 : 0))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
 
@@ -410,7 +428,7 @@ struct SettingsSheetView: View {
     }
 
     private func closeAndSave() {
-        salaryFieldFocused = false
+        dismissSalaryKeyboard()
         guard salaryValue > 0 else {
             showMissingSalaryAlert = true
             return
@@ -450,11 +468,102 @@ struct SettingsSheetView: View {
         onComplete(false)
     }
 
+    private func dismissSalaryKeyboard() {
+        salaryFieldFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
     /// "10000000" -> "10,000,000" (digits only, comma-grouped)
-    private static func groupedDigits(from text: String) -> String {
+    fileprivate static func groupedDigits(from text: String) -> String {
         let digits = text.filter(\.isNumber)
         guard let value = Int(digits) else { return "" }
         return value.formatted(.number.grouping(.automatic))
+    }
+}
+
+private struct AmountTextField: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var isFocused: Bool
+
+    let placeholder: String
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        textField.delegate = context.coordinator
+        context.coordinator.textField = textField
+        textField.keyboardType = .numberPad
+        textField.textAlignment = .right
+        textField.placeholder = placeholder
+        textField.textColor = UIColor(Color.money)
+        textField.tintColor = UIColor(Color.money)
+        textField.font = .monospacedDigitSystemFont(ofSize: 16, weight: .bold)
+        textField.adjustsFontSizeToFitWidth = true
+        textField.minimumFontSize = 12
+        textField.inputAccessoryView = context.coordinator.makeAccessoryToolbar()
+        textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        textField.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange(_:)), for: .editingChanged)
+        return textField
+    }
+
+    func updateUIView(_ textField: UITextField, context: Context) {
+        context.coordinator.parent = self
+
+        if textField.text != text {
+            textField.text = text
+        }
+
+        if isFocused, !textField.isFirstResponder {
+            DispatchQueue.main.async {
+                guard context.coordinator.parent.isFocused else { return }
+                textField.becomeFirstResponder()
+            }
+        } else if !isFocused, textField.isFirstResponder {
+            textField.resignFirstResponder()
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: AmountTextField
+        weak var textField: UITextField?
+
+        init(parent: AmountTextField) {
+            self.parent = parent
+        }
+
+        func makeAccessoryToolbar() -> UIToolbar {
+            let toolbar = UIToolbar()
+            toolbar.sizeToFit()
+            toolbar.items = [
+                UIBarButtonItem.flexibleSpace(),
+                UIBarButtonItem(title: "완료", style: .done, target: self, action: #selector(doneTapped))
+            ]
+            return toolbar
+        }
+
+        func textFieldDidBeginEditing(_ textField: UITextField) {
+            parent.isFocused = true
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            parent.isFocused = false
+        }
+
+        @objc func textDidChange(_ textField: UITextField) {
+            let formatted = SettingsSheetView.groupedDigits(from: textField.text ?? "")
+            if textField.text != formatted {
+                textField.text = formatted
+            }
+            parent.text = formatted
+        }
+
+        @objc private func doneTapped() {
+            parent.isFocused = false
+            textField?.resignFirstResponder()
+        }
     }
 }
 
